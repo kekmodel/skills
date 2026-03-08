@@ -1,0 +1,22 @@
+{
+  "name": "kekmodel-skills",
+  "owner": {
+    "name": "JD Kim",
+    "email": "kekmodel@gmail.com"
+  },
+  "metadata": {
+    "description": "JD Kim's custom Claude Code skills",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "python-dev",
+      "description": "Python development skills including uv virtual environment setup",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/uv-env-setup"
+      ]
+    }
+  ]
+}
