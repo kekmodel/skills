@@ -17,6 +17,33 @@
       "skills": [
         "./skills/uv-env-setup"
       ]
+    },
+    {
+      "name": "gws",
+      "description": "Google Workspace CLI skill for Gmail, Drive, Calendar, Sheets, Docs and more",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/gws"
+      ]
+    },
+    {
+      "name": "browser-use",
+      "description": "Browser automation CLI skill for web browsing, form filling, screenshots and page interaction",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/browser-use"
+      ]
+    },
+    {
+      "name": "autoresearch",
+      "description": "Autonomous experiment loop for any optimization target with solo and swarm modes",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/autoresearch"
+      ]
     }
   ]
 }
