@@ -12,7 +12,7 @@
     {
       "name": "python-dev",
       "description": "Python development skills including uv virtual environment setup",
-      "source": "./",
+      "source": "./skills/uv-env-setup",
       "strict": false,
       "skills": [
         "./skills/uv-env-setup"
@@ -21,7 +21,7 @@
     {
       "name": "gws",
       "description": "Google Workspace CLI skill for Gmail, Drive, Calendar, Sheets, Docs and more",
-      "source": "./",
+      "source": "./skills/gws",
       "strict": false,
       "skills": [
         "./skills/gws"
@@ -30,7 +30,7 @@
     {
       "name": "browser-use",
       "description": "Browser automation CLI skill for web browsing, form filling, screenshots and page interaction",
-      "source": "./",
+      "source": "./skills/browser-use",
       "strict": false,
       "skills": [
         "./skills/browser-use"
@@ -39,7 +39,7 @@
     {
       "name": "autoresearch",
       "description": "Autonomous experiment loop for any optimization target with solo and swarm modes",
-      "source": "./",
+      "source": "./skills/autoresearch",
       "strict": false,
       "skills": [
         "./skills/autoresearch"
