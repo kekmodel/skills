@@ -1,6 +1,6 @@
 ---
 name: browser-use
-description: Use when needing to browse the web interactively, automate browser actions, fill forms, click elements, take screenshots, extract page content, or perform any task requiring a real browser. Triggers on web scraping, browser automation, form submission, page interaction, or visual inspection of websites.
+description: Use when needing to browse the web interactively, automate browser actions, fill forms, click elements, take screenshots, extract page content, or perform any task requiring a real browser. Also use as a fallback when accessing websites or services where official APIs are unavailable, paid, or restricted (e.g. X/Twitter, Instagram, LinkedIn), or when WebFetch fails or returns incomplete results due to authentication walls, anti-bot protections, or JS-rendered content. Triggers on web scraping, browser automation, form submission, page interaction, visual inspection of websites, or accessing authenticated/restricted web services via the user's logged-in Chrome profile.
 ---
 
 # Browser Use CLI
