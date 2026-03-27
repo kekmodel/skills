@@ -15,31 +15,32 @@ browser-use <command> --help      # command-specific (e.g. browser-use cookies -
 
 ## Session Lifecycle (MUST follow)
 
-**Before starting any browser task**, always clean up existing sessions first:
+> ⚠️ **`--session <name>` is REQUIRED on every command.** Never run browser-use without a session name. This ensures parallel safety, explicit cleanup, and no orphaned processes.
+
+**Before starting any browser task**, clean up the target session:
 
 ```bash
-browser-use sessions           # 1. Check for existing sessions
-browser-use close              # 2. Close all if any exist (prevents memory leak)
+browser-use --session <name> close    # 1. Close if exists (prevents memory leak)
 ```
 
 **After completing a browser task**, always close:
 
 ```bash
-browser-use close              # Always close when done — do NOT leave daemon running
+browser-use --session <name> close    # Always close when done
 ```
 
-> ⚠️ **Never skip cleanup.** Each `open` without prior `close` spawns a new daemon/browser process that leaks memory. Always close before opening and after finishing.
+> **Never skip cleanup.** Each `open` without prior `close` spawns a new daemon/browser process that leaks memory. Always close before opening and after finishing.
 
 ## Core Workflow
 
 ```bash
-browser-use close                 # 0. Clean up any prior session
-browser-use open <url>            # 1. Navigate
-browser-use state                 # 2. See page elements (indexed)
-browser-use click <index>         # 3. Interact by element index
-browser-use input <index> "text"  # 4. Type into fields
-browser-use screenshot [path]     # 5. Capture result
-browser-use close                 # 6. Clean up when done
+browser-use --session <name> close                 # 0. Clean up any prior session
+browser-use --session <name> open <url>            # 1. Navigate
+browser-use --session <name> state                 # 2. See page elements (indexed)
+browser-use --session <name> click <index>         # 3. Interact by element index
+browser-use --session <name> input <index> "text"  # 4. Type into fields
+browser-use --session <name> screenshot [path]     # 5. Capture result
+browser-use --session <name> close                 # 6. Clean up when done
 ```
 
 ## Quick Reference
@@ -89,42 +90,46 @@ browser-use close                 # 6. Clean up when done
 
 ### Search and extract
 ```bash
-browser-use open "https://google.com"
-browser-use state                    # find search input index
-browser-use input 1 "search query"
-browser-use keys "Enter"
-browser-use extract "list all search result titles and URLs"
+browser-use --session search open "https://google.com"
+browser-use --session search state                    # find search input index
+browser-use --session search input 1 "search query"
+browser-use --session search keys "Enter"
+browser-use --session search extract "list all search result titles and URLs"
+browser-use --session search close
 ```
 
 ### Fill a form
 ```bash
-browser-use open "https://example.com/form"
-browser-use state                    # see all form fields
-browser-use input 1 "John"          # name field
-browser-use input 2 "john@test.com" # email field
-browser-use select 3 "option_a"     # dropdown
-browser-use click 4                  # submit button
-browser-use wait text "Thank you"
+browser-use --session form open "https://example.com/form"
+browser-use --session form state                    # see all form fields
+browser-use --session form input 1 "John"          # name field
+browser-use --session form input 2 "john@test.com" # email field
+browser-use --session form select 3 "option_a"     # dropdown
+browser-use --session form click 4                  # submit button
+browser-use --session form wait text "Thank you"
+browser-use --session form close
 ```
 
 ### Screenshot for visual inspection
 ```bash
-browser-use open "https://example.com"
-browser-use screenshot /tmp/page.png  # then Read the image
+browser-use --session inspect open "https://example.com"
+browser-use --session inspect screenshot /tmp/page.png  # then Read the image
+browser-use --session inspect close
 ```
 
 ### Use real Chrome profile (logged-in sessions)
 ```bash
-browser-use --profile open "https://gmail.com"  # uses Default Chrome profile
-browser-use --profile "Work" open "https://app.com"  # specific profile
+browser-use --profile --session gmail open "https://gmail.com"  # uses Default Chrome profile
+browser-use --profile "Work" --session work open "https://app.com"  # specific profile
 ```
 
 ## Tips
 
+- **`--session <name>` is mandatory** — always name your session for tracking and parallel safety
 - **Always `close` before `open` and after finishing** — prevents memory leaks from orphaned daemons
 - `state` returns indexed elements — use indices for `click`, `input`, `select`
 - Screenshots saved to file can be read with the Read tool for visual inspection
 - `extract` uses LLM to parse page content — good for unstructured data
 - `--profile` reuses real Chrome cookies/sessions (already logged in)
 - Daemon persists between commands — no need to re-open browser each time
-- For parallel browsing, use `--session name` to create separate sessions
+- Multiple `--session` names allow parallel browsing without conflicts
