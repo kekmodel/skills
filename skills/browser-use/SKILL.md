@@ -13,14 +13,33 @@ browser-use --help                # all commands
 browser-use <command> --help      # command-specific (e.g. browser-use cookies --help)
 ```
 
+## Session Lifecycle (MUST follow)
+
+**Before starting any browser task**, always clean up existing sessions first:
+
+```bash
+browser-use sessions           # 1. Check for existing sessions
+browser-use close              # 2. Close all if any exist (prevents memory leak)
+```
+
+**After completing a browser task**, always close:
+
+```bash
+browser-use close              # Always close when done — do NOT leave daemon running
+```
+
+> ⚠️ **Never skip cleanup.** Each `open` without prior `close` spawns a new daemon/browser process that leaks memory. Always close before opening and after finishing.
+
 ## Core Workflow
 
 ```bash
-browser-use open <url>        # 1. Navigate
-browser-use state             # 2. See page elements (indexed)
-browser-use click <index>     # 3. Interact by element index
+browser-use close                 # 0. Clean up any prior session
+browser-use open <url>            # 1. Navigate
+browser-use state                 # 2. See page elements (indexed)
+browser-use click <index>         # 3. Interact by element index
 browser-use input <index> "text"  # 4. Type into fields
-browser-use screenshot [path] # 5. Capture result
+browser-use screenshot [path]     # 5. Capture result
+browser-use close                 # 6. Clean up when done
 ```
 
 ## Quick Reference
@@ -102,10 +121,10 @@ browser-use --profile "Work" open "https://app.com"  # specific profile
 
 ## Tips
 
+- **Always `close` before `open` and after finishing** — prevents memory leaks from orphaned daemons
 - `state` returns indexed elements — use indices for `click`, `input`, `select`
 - Screenshots saved to file can be read with the Read tool for visual inspection
 - `extract` uses LLM to parse page content — good for unstructured data
 - `--profile` reuses real Chrome cookies/sessions (already logged in)
 - Daemon persists between commands — no need to re-open browser each time
-- Use `close` when done to clean up the daemon
 - For parallel browsing, use `--session name` to create separate sessions
