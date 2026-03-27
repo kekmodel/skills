@@ -15,7 +15,7 @@
       "source": "./skills/uv-env-setup",
       "strict": false,
       "skills": [
-        "./skills/uv-env-setup"
+        "."
       ]
     },
     {
@@ -24,7 +24,7 @@
       "source": "./skills/gws",
       "strict": false,
       "skills": [
-        "./skills/gws"
+        "."
       ]
     },
     {
@@ -33,7 +33,7 @@
       "source": "./skills/browser-use",
       "strict": false,
       "skills": [
-        "./skills/browser-use"
+        "."
       ]
     },
     {
@@ -42,7 +42,7 @@
       "source": "./skills/autoresearch",
       "strict": false,
       "skills": [
-        "./skills/autoresearch"
+        "."
       ]
     }
   ]
