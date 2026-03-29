@@ -1,0 +1,15 @@
+{
+  "name": "browser-use",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "which browser-use >/dev/null 2>&1 || (echo '[browser-use] Installing...' && curl -fsSL https://browser-use.com/cli/install.sh | bash)"
+          }
+        ]
+      }
+    ]
+  }
+}
