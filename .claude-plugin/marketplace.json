@@ -33,7 +33,8 @@
       "source": "./plugins/browser-use/",
       "strict": false,
       "skills": [
-        "./skills/browser-use"
+        "./skills/browser-use",
+        "./skills/gemini-generate"
       ]
     },
     {
