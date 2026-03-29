@@ -76,25 +76,32 @@ browser-use --session gemini click <download-button-index>
 ```
 
 ### Image fallback / Video / Music (JS fetch → blob → anchor)
+**IMPORTANT:** eval doesn't await async results. Use callback pattern + poll for completion.
 ```bash
+# Step 1: Trigger async download
 browser-use --session gemini eval "
-const el = document.querySelectorAll('video');  // or img[src*='blob']
+window.__dlReady = false; window.__dlError = null;
+const el = document.querySelectorAll('video');
 const target = el[el.length - 1];
-const src = target.src;
-fetch(src, {credentials: 'include'})
+fetch(target.src, {credentials: 'include'})
   .then(r => r.blob())
   .then(blob => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'gemini_output.mp4';  // or .png
+    a.download = 'gemini_output.mp4';
     document.body.appendChild(a);
     a.click();
     a.remove();
-  });
-'triggered'
+    window.__dlReady = true;
+  })
+  .catch(e => { window.__dlError = e.message; window.__dlReady = true; });
+'started'
 "
-# File appears in CDP downloadPath within ~10s
+# Step 2: Poll for completion (wait 10-15s then check)
+browser-use --session gemini eval "window.__dlReady + '|' + window.__dlError"
+# Expected: "true|null"
+# File appears in CDP downloadPath
 ```
 
 ## Telegram Delivery
