@@ -53,7 +53,8 @@
       "strict": false,
       "skills": [
         "./skills/team",
-        "./skills/team-analyze"
+        "./skills/team-analyze",
+        "./skills/team-analyze-v2"
       ]
     }
   ]
