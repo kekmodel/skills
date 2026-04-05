@@ -45,6 +45,16 @@
       "skills": [
         "./skills/autoresearch"
       ]
+    },
+    {
+      "name": "agent-team-theory",
+      "description": "First-principles agent team composition. Analyzes tasks, selects optimal architecture (A0-A8), and executes with dynamically composed Teammate teams.",
+      "source": "./plugins/agent-team-theory/",
+      "strict": false,
+      "skills": [
+        "./skills/team",
+        "./skills/team-analyze"
+      ]
     }
   ]
 }
