@@ -20,8 +20,7 @@ claude plugins add /absolute/path/to/agent-team-theory
 
 ## Skills
 
-- `/team` (or `agent-team-theory:team`) — full orchestration
-- `/team-analyze` (or `agent-team-theory:team-analyze`) — analysis only
+- `/team` (or `agent-team-theory:team`) — analyze task, confirm structure with user, self-assign role, execute
 
 ## Agents
 

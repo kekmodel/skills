@@ -50,10 +50,9 @@
       "name": "agent-team-theory",
       "description": "Generation-grammar agent team composition. Types tasks (Σ), derives obligations (Req), computes minimal admissible pattern covers (Γ), and executes with Structure Grammar atoms (Operator, Coordinator, Evaluator, Rewriter).",
       "source": "./plugins/agent-team-theory/",
-      "strict": false,
+      "strict": true,
       "skills": [
-        "./skills/team",
-        "./skills/team-analyze"
+        "./skills/team"
       ]
     }
   ]

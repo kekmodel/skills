@@ -1,12 +1,14 @@
 ---
 name: team
-description: "Execute any task with the best team structure derived from the generation grammar pipeline (T → Σ → Δ → Req → Γ → team → evaluation)."
+description: "Analyze task, derive team structure, confirm with user, then self-assign role and execute (T → Σ → Δ → Req → Γ → confirm → team → evaluation)."
 user_invocable: true
 ---
 
-# Agent Team Coordinator
+# Agent Team
 
-You are the **Coordinator (lead)** — the Coordinator atom with substrate privileges (TeamCreate, Agent spawn). Run the generation grammar pipeline to derive the optimal team, create it, execute, and evaluate.
+You execute the generation grammar pipeline to derive the optimal team structure, determine your own role within it, spawn the remaining atoms, and coordinate execution.
+
+Phases 1-3 are pre-team analysis — you have no team role yet. At Phase 4 you assign yourself a role from the derived structure (Section 7, Structure Grammar) and become that atom. From that point on, you operate under the same theory constraints as every other atom.
 
 Reference: `../../references/AGENT_TEAM_THEORY.md`
 
@@ -17,7 +19,7 @@ Reference: `../../references/AGENT_TEAM_THEORY.md`
 4 agent types + 1 substrate:
 
 - **Operator**: fulfills ω_par, ω_seq, ω_variety
-- **Coordinator**: fulfills ω_dispatch, ω_exception, ω_boundary. **You (lead) are always a Coordinator. Spawn additional Coordinator peers when 2+ dispatch domains exist, or when governance obligations require a separate ω_g_resolve / ω_g_escalate carrier.**
+- **Coordinator**: fulfills ω_dispatch, ω_exception, ω_boundary
 - **Evaluator**: fulfills ω_verify, ω_select (+ DP3 adversarial, DP6+ audit overlays)
 - **Rewriter**: fulfills ω_rewrite, ω_g_rule
 - **State**: substrate (NOT agent) — task system + shared context files
@@ -28,20 +30,20 @@ Reference: `../../references/AGENT_TEAM_THEORY.md`
 |---|---|---|
 | ω_par | Operator | 1 per parallel subtask |
 | ω_seq | Operator | 1 per pipeline stage |
-| ω_dispatch | Coordinator | 1 (you by default; spawn peers if 2+ domains or governance requires a peer) |
+| ω_dispatch | Coordinator(dispatch) | 1 |
 | ω_contract | State(contract) | substrate — tasks/{team}/*.json |
 | ω_shared | State(shared) | substrate — _shared/context.md |
-| ω_exception | Coordinator | same instance as ω_dispatch unless governance assigns a dedicated peer |
+| ω_exception | Coordinator(exception) | same instance as ω_dispatch unless governance assigns a dedicated Coordinator |
 | ω_boundary | Coordinator | same instance — boundary assignment and spillover mediation |
 | ω_verify | Evaluator(verify) | 1 |
 | ω_select | Evaluator(select) | 1 |
 | ω_rewrite | Rewriter | 1 |
 | ω_variety | Operator | k with diversified briefs |
 | ω_g_rule | Rewriter | governance: proposes/applies rules |
-| ω_g_resolve | Coordinator | governance: mediates conflicts |
-| ω_g_monitor | Evaluator(audit) | governance: checkpoint compliance |
-| ω_g_enforce | Coordinator (lead) | governance: L3/L4 enforcement |
-| ω_g_escalate | Coordinator (peer) | governance: routes to Coordinator (lead) |
+| ω_g_resolve | Coordinator(resolve) | governance: mediates conflicts |
+| ω_g_monitor | Evaluator(audit) | governance: compliance monitoring |
+| ω_g_enforce | Coordinator(enforce) | governance: enforcement |
+| ω_g_escalate | Coordinator(escalate) | governance: routes to Coordinator(enforce) |
 
 Model defaults: Operator → sonnet; Coordinator → sonnet; Evaluator → opus; Rewriter → opus.
 
@@ -65,9 +67,9 @@ State is substrate, not an agent. Three modes, all file-system-based, persistent
 
 ### Access Model
 
-You (Coordinator lead) have all tools. Spawned teammate permissions:
+Spawned teammate permissions:
 
-| Capability | Coordinator (peer) | Operator | Evaluator | Rewriter |
+| Capability | Coordinator | Operator | Evaluator | Rewriter |
 |---|---|---|---|---|
 | TaskCreate / TaskUpdate | ✅ | ❌ | ❌ | ❌ |
 | TaskGet / TaskList | ✅ | ✅ | ❌ | ❌ |
@@ -75,19 +77,18 @@ You (Coordinator lead) have all tools. Spawned teammate permissions:
 | Read (all 3 State modes) | ✅ | ✅ | ✅ | ✅ |
 | Write / Edit | ✅ | ✅ | ❌ | ✅ |
 
-- **Evaluator**: Read-only access to all three State modes. Audits contracts (task files), shared state, and communication metadata (inbox files) without participating. No write to any State mode.
+- **Evaluator**: Read-only access to all three State modes. No write to any State mode. Independence required by D6 / AP13.
 - **Operator**: reads tasks and messages peers, may write scoped deliverables plus State(shared), but cannot create/modify tasks or governance artifacts.
-- **Coordinator (peer)**: owns State(contract) write side for its dispatch domain.
+- **Coordinator**: owns State(contract) write side for its dispatch domain.
 
 ---
 
-## Substrate Constraints
+## Constraints
 
-1. **TeamCreate is lead-only.** Only you (Coordinator lead) call TeamCreate. Substrate privilege.
-2. **Flat atom structure.** You are a peer Coordinator with spawn/lifecycle privileges. No atom may create sub-teams.
-3. **Evaluator isolation.** Evaluator communicates ONLY with you (Coordinator lead). Never with Operators, peer Coordinators, or Rewriter.
-4. **Evaluator(audit) is checkpoint-based.** At phase boundaries, Evaluator reads State(contract) and State(shared) directly, and may inspect State(message) metadata for routing/escalation compliance only. It must not treat operator confidence, assumptions, or self-assessments as evidence for output correctness.
-5. **Structure overflow.** If atom count exceeds ~8 → consolidate Operators or split scope into phases. If still over → F5, L4.
+1. **Flat atom structure.** No atom may create sub-teams. New structure must be derived through the composition calculus.
+2. **Evaluator isolation.** Evaluator communicates ONLY with the Coordinator fulfilling omega_dispatch (D6 + AP13). Never with Operators or Rewriter.
+3. **Evaluator(audit) at phase boundaries.** Evaluator reads State(contract) and State(shared) directly, and may inspect State(message) metadata for routing/escalation compliance only. It must not treat operator self-assessments as evidence for output correctness.
+4. **Structure overflow.** If atom count exceeds ~8 → consolidate Operators or split scope into phases. If still over → F5, L4.
 
 ---
 
@@ -95,21 +96,12 @@ You (Coordinator lead) have all tools. Spawned teammate permissions:
 
 | Atom | SendMessage | Communicates with |
 |---|---|---|
-| Operator | yes | peers, Coordinator (lead or peer) |
-| Coordinator (peer) | yes | Operators, Rewriter, Coordinator (lead) |
-| Evaluator | no | Coordinator (lead) only |
-| Rewriter | yes | Coordinator (lead or peer) |
+| Operator | yes | peer Operators, Coordinator |
+| Coordinator | yes | Operators, Rewriter, other Coordinators |
+| Evaluator | no | Coordinator(dispatch) only |
+| Rewriter | yes | Coordinator |
 
-Evaluator NEVER receives reasoning or self-assessments from Operators. It evaluates outputs against specs only.
-
----
-
-## Prior Analysis Check
-
-Before running Phases 1-3: check if a `/team-analyze` report exists in the current conversation.
-
-- **If a valid team-analyze report exists:** Adopt its Σ(T), Δ(T), Req(Δ,Σ), and Γ. Skip directly to Phase 4.
-- **If not:** Run the full pipeline from Phase 1.
+Evaluator NEVER receives reasoning or self-assessments from Operators. It evaluates outputs against contracts only.
 
 ---
 
@@ -244,7 +236,7 @@ DP coverage table:
    b. Among admissible DPs: pick the one covering the most obligations in R_remaining.
    c. Tie-break: lower DP number (simpler first).
    d. Add selected DP to Γ. Update `R_remaining = Req - cl(Γ)`.
-3. If no admissible DP covers any remaining ω → STOP: **F2 cover failure**. Report partial cover + uncovered ω to user (L4).
+3. If no admissible DP covers any remaining ω → STOP: **F2 cover failure**. Report partial cover + uncovered ω to user.
 
 ### Step 4: Closure Verification
 
@@ -261,6 +253,52 @@ DP coverage table:
 
 ---
 
+## Confirmation Gate
+
+After Phase 3 completes, present the analysis report to the user before proceeding. This is the boundary between pure analysis (no side effects) and realization (spawning, state creation, token consumption).
+
+**Report contents:**
+
+1. **Task Typing Σ(T)** — 12 predicates, each with value + evidence
+2. **Active Pressures Δ(T)** — active D list with activation reasoning
+3. **Required Obligations Req(Δ,Σ)** — ω list with rule # that produced each
+4. **Well-Typedness** — wt_exec, wt_select, wt results
+5. **Pattern Cover Γ** — DPs selected, admissibility verified, minimality verified
+6. **Task Family Match** — TF matched (full/partial/none) with reasoning
+7. **Realized Structure Preview** — atom roster with self-assignment:
+
+   | Obligation | Atom | Count | Notes |
+   |---|---|---|---|
+   | ω_par | Operator | 1 per parallel subtask | |
+   | ω_seq | Operator | 1 per pipeline stage | |
+   | ω_dispatch | Coordinator | 1 | base instance (self-assignment target) |
+   | ω_contract | State(contract) | substrate | |
+   | ω_shared | State(shared) | substrate | |
+   | ω_exception | Coordinator | same instance | base instance |
+   | ω_boundary | Coordinator | same instance | base instance |
+   | ω_verify | Evaluator(verify) | 1 | spawned (D6 independence) |
+   | ω_select | Evaluator(select) | 1 | spawned (D6 independence) |
+   | ω_rewrite | Rewriter | 1 | spawned (D5a reactive) |
+   | ω_variety | Operator | k with diversified briefs | |
+   | ω_g_rule | Rewriter | governance stack | |
+   | ω_g_resolve | Coordinator(resolve) | governance stack | spawned separately |
+   | ω_g_monitor | Evaluator(audit) | governance stack | |
+   | ω_g_enforce | Coordinator(enforce) | governance stack | base instance |
+   | ω_g_escalate | Coordinator(escalate) | governance stack | spawned separately |
+
+   Draw the Structure Grammar diagram.
+
+8. **Preliminary Structural Assessment** — G0 (closure already verified in Phase 3 Step 4). G1 preliminary: D5 → DP10? D6 → DP6? D8/D9 → DP13? Governance stack complete?
+9. **Risks & Caveats** — uncertain predicates, edge cases
+10. **Decision Path** — trace through each phase showing choices and reasoning
+
+After the report, ask the user: **"Proceed with this structure?"** Then **STOP. Do not proceed to Phase 4 until the user explicitly confirms.**
+
+- **User confirms** → Phase 4.
+- **User requests changes** → adjust Σ, Δ, or Γ as requested, re-verify closure and minimality, present updated report, and STOP again.
+
+---
+
 ## Phase 4: Realization `Γ → team`
 
 ### Step 1: Count Atom Instances
@@ -271,7 +309,7 @@ From the computed Γ and Req, determine the concrete atom roster:
 |---|---|---|
 | ω_par | Operator | 1 per parallel subtask (examine task decomposition to determine k) |
 | ω_seq | Operator | 1 per pipeline stage |
-| ω_dispatch | Coordinator | see absorption rule below |
+| ω_dispatch | Coordinator | 1 |
 | ω_exception | Coordinator | same instance as dispatch |
 | ω_boundary | Coordinator | same instance — boundary rules in brief |
 | ω_contract | State(contract) | substrate, not an agent |
@@ -279,11 +317,7 @@ From the computed Γ and Req, determine the concrete atom roster:
 | ω_verify | Evaluator (mode=verify) | 1 |
 | ω_select | Evaluator (mode=select) | 1 |
 | ω_rewrite | Rewriter | 1 |
-| ω_variety | Operator | k Operators with diversified briefs |
-
-**Coordinator spawn rule:**
-- **Lead-only realization:** If the task has a single dispatch domain and Req does not contain ω_g_resolve or ω_g_escalate, you fulfill the Coordinator role directly.
-- **Peer Coordinator required:** Spawn at least one Coordinator peer when the task has 2+ independent dispatch domains, or when Req contains ω_g_resolve or ω_g_escalate.
+| ω_variety | Operator | k with diversified briefs |
 
 ### Step 2: Realize ω_g_* Individually
 
@@ -291,19 +325,31 @@ If R12 produced governance obligations, the governance stack is mandatory, not o
 
 | Obligation | Realized by | Concrete behavior |
 |---|---|---|
-| ω_g_rule | Rewriter | Proposes rule modifications, submits to Coordinator (lead) for approval. Spawn immediately when active. |
-| ω_g_resolve | Coordinator (peer) | Mediates conflicts between atoms per boundary rules. Spawn even if there is only one dispatch domain. |
+| ω_g_rule | Rewriter | Proposes rule modifications, submits to Coordinator(enforce) for approval. |
+| ω_g_resolve | Coordinator(resolve) | Mediates conflicts between atoms per boundary rules. |
 | ω_g_monitor | Evaluator(audit) | At phase boundaries, checks rule adherence, reports AP violations. |
-| ω_g_enforce | Coordinator (lead) | L3/L4 enforcement: adding atoms (L3) or returning to user (L4). |
-| ω_g_escalate | Coordinator (peer) | Routes unresolvable issues to Coordinator (lead). Spawn even if there is only one dispatch domain. |
+| ω_g_enforce | Coordinator(enforce) | Enforcement: L3 (add atom) or L4 (return to user). |
+| ω_g_escalate | Coordinator(escalate) | Routes unresolvable issues to Coordinator(enforce). |
 
-### Step 3: Substrate Limit Check
+### Step 3: Self-Assignment
+
+You are one of the atoms in the derived structure. Determine which role you fulfill.
+
+**Exclusions (theory-derived):**
+- **Evaluator**: excluded. D6 requires the verifier to be independent from the entity that designed the contracts and observed the process. AP13 warns against shared error modes between producer and verifier.
+- **Rewriter**: excluded. Rewriter is a reactive role (D5a + recurrence → omega_rewrite) activated when recurring exceptions are detected, not at team formation.
+
+**Assignment rule:**
+- **Coordinator in roster** → self-assign to the base Coordinator instance (the one carrying the hub obligations: dispatch + exception + boundary, per Section 7 "same instance" clustering). Governance-specific instances (resolve, escalate) are spawned separately. Spawn all other atoms.
+- **No Coordinator in roster** → self-assign to one of the Operators. Spawn the remaining atoms.
+
+### Step 4: Atom Limit Check
 
 Count total active agents (excluding State substrate):
 - If total > 8 atoms → consolidate: merge Operators with overlapping scope, or split the task into sequential phases.
-- If still exceeds limits after consolidation → F5 (normal-form failure), L4 escalation to user.
+- If still exceeds limits after consolidation → F5 (normal-form failure), L4.
 
-### Step 4: Model Assignment
+### Step 5: Model Assignment
 
 | Atom | Model | Rationale |
 |---|---|---|
@@ -312,12 +358,12 @@ Count total active agents (excluding State substrate):
 | Evaluator | opus | Judgment accuracy is critical for verification and selection |
 | Rewriter | opus | Meta-reasoning (double-loop) requires strongest reasoning |
 
-### Step 5: State Setup
+### Step 6: State Setup
 
 - If ω_shared is in Req → create the shared context file (e.g., `_shared/context.md`) with initial task context.
 - If ω_contract is in Req → create tasks via TaskCreate. Each task description contains acceptance criteria — this IS the contract. Set up dependencies with `addBlockedBy` for sequential tasks (e.g., Evaluator tasks blocked by Operator tasks).
 
-### Step 6: TeamCreate
+### Step 7: TeamCreate
 
 Call TeamCreate to create the team structure and task list:
 
@@ -325,18 +371,18 @@ Call TeamCreate to create the team structure and task list:
 TeamCreate({ team_name: "<name>", description: "<purpose>" })
 ```
 
-**TeamCreate only creates team metadata.** It does NOT spawn agents. Agent spawning happens in Step 7.
+**TeamCreate only creates team metadata.** It does NOT spawn agents. Agent spawning happens in Step 8.
 
-### Step 7: Spawn Teammates
+### Step 8: Spawn Remaining Atoms
 
-For each atom in the roster (Steps 1-2), spawn a teammate using the **Agent tool**:
+For each atom in the roster **except your self-assigned role**, spawn a teammate using the **Agent tool**:
 
 ```
 Agent({
-  team_name: "<team from Step 6>",
+  team_name: "<team from Step 7>",
   name: "<unique name>",                          // e.g., "coordinator", "operator-1", "evaluator"
   subagent_type: "agent-team-theory:<atom>",    // operator, coordinator, evaluator, rewriter
-  model: "<model>",                                // from Step 4; omit to use agent default
+  model: "<model>",                                // from Step 5; omit to use agent default
   prompt: "<instruction brief>",                   // role, scope, boundaries, shared state path, task IDs
   description: "<3-5 word summary>"
 })
@@ -344,28 +390,34 @@ Agent({
 
 **Spawning rules:**
 - Spawn all **parallel Operators simultaneously** (multiple Agent calls in one message).
-- Spawn **Coordinator peers** if 2+ dispatch domains exist, or if ω_g_resolve / ω_g_escalate is active.
-- Spawn **Evaluator** alongside others; if ω_g_monitor is active, include explicit audit checkpoints in its brief.
-- Spawn **Rewriter** immediately when ω_g_rule or ω_rewrite is active. Do not defer an active governance obligation.
+- If governance is active, spawn additional Coordinators for ω_g_resolve / ω_g_escalate.
+- Spawn **Evaluator** alongside others; if ω_g_monitor is active, include audit checkpoints in its brief.
+- Spawn **Rewriter** immediately when ω_g_rule or ω_rewrite is active.
 - Each prompt MUST include: assigned task IDs, shared context file path, team name, communication boundaries.
 
 **After spawning, assign tasks:**
 - Use `TaskUpdate({ taskId, owner: "<teammate-name>" })` to assign tasks to spawned teammates.
 - Teammates discover their contracts via `TaskGet` and begin work.
 
-### Step 8: Execute & Coordinate
+### Step 9: Execute as Your Assigned Atom
 
-Once teammates are spawned and tasks assigned:
+From this point you operate under the theory constraints of your self-assigned role:
 
-- **Default (no peer Coordinator):** You dispatch directly to Operators via SendMessage.
-- **If peer Coordinator(s) present:** SendMessage task decomposition to peer Coordinator(s) for domain-specific dispatch.
-- **Evaluator(verify):** After Operator tasks complete, SendMessage Evaluator with contract IDs, artifact locations, and objective acceptance criteria. Do not forward Operator self-assessments or confidence summaries as evidence.
-- **Evaluator(select):** After multiple candidates produced, SendMessage all candidates to Evaluator for ranked selection.
-- **Rewriter:** Activate via SendMessage when recurring exceptions are detected.
+**If you are Coordinator:**
+- Dispatch to Operators via SendMessage.
+- If additional Coordinators present: SendMessage task decomposition for domain-specific dispatch.
+- After Operator tasks complete: SendMessage Evaluator with contract IDs and artifact locations. Do not forward Operator self-assessments as evidence.
+- After multiple candidates produced: SendMessage all candidates to Evaluator for ranked selection.
+- Activate Rewriter via SendMessage when recurring exceptions are detected.
+
+**If you are Operator:**
+- Execute your assigned subtask within scope.
+- Report completion and artifacts.
+- Coordinate with peer Operators via State(shared).
 
 Teammates go **idle after each turn**. SendMessage to wake them.
 
-### Step 9: Monitor During Execution
+### Step 10: Monitor During Execution
 
 Watch for failure types and anti-patterns:
 
@@ -376,14 +428,14 @@ Watch for failure types and anti-patterns:
 - F4 (minimality): unnecessary atoms adding overhead without value
 - F5 (normal-form): structural inconsistency (e.g., Evaluator receiving direct Operator messages)
 
-**Anti-pattern surveillance (priority):**
-- AP1 Groupthink: all Operators converging on identical approach
-- AP5 Information Silo: Operator working without reading shared state
-- AP9 Ghost Governance: governance obligations exist but no atom enforces them
-- AP14 Untyped Selection: Evaluator(select) active without candidate_multiplicity ∧ reviewability
-- Local diagnostic: rubber-stamp evaluator behavior
-- Local diagnostic: audit theater
-- Local diagnostic: coordinator bottleneck
+**Anti-pattern surveillance (AP diagnostic dictionary):**
+- AP1 Groupthink: all Operators converging on identical approach (F2, D7 active but ω_variety uncovered)
+- AP2 Coordination Explosion: overloaded coordination bundle (F4)
+- AP5 Information Silo: Operator working without reading shared state (F2, D3 active but ω_contract/ω_shared missing)
+- AP9 Ghost Governance: governance obligations exist but no atom enforces them (F2, D4a+D5+recip active but governance bundle missing)
+- AP12 Context Overload: single locus overloaded without topology witness (F1)
+- AP13 Mirror Verification: evaluator shares producer's error mode (F3, independence violation)
+- AP14 Untyped Selection: Evaluator(select) active without candidate_multiplicity ∧ reviewability (F1)
 
 ---
 
@@ -407,7 +459,7 @@ For each active pressure, verify its safety path exists:
 - D8 ∧ D9 active → typed selection exists? (Evaluator(select) present with candidate_multiplicity ∧ reviewability confirmed)
 - D4a ∧ D5 ∧ recip active → governance stack complete? (all 5 ω_g_* individually realized per Step 2 of Phase 4)
 
-**G1 fail → Reject.** Add missing atom (L3 escalation). If L3 insufficient → L4 to user.
+**G1 fail → Reject.** Add missing atom (L3). If insufficient → L4.
 
 ### Step 3: F1-F5 Detection
 
@@ -435,8 +487,8 @@ Score each dimension using concrete measurements. If no execution logs exist, ma
 1. Count total messages: Read all inbox files in `~/.claude/teams/{team}/inboxes/`.
 2. Count coordination messages: messages where `from` is a Coordinator.
 3. Coordination ratio = coordination_messages / total_messages.
-4. Warning threshold: ratio > 0.4 indicates excessive coordination overhead.
-5. Estimate cognitive saturation: any Operator handling > 5 distinct subtasks simultaneously?
+4. High coordination ratio indicates AP2 (Coordination Explosion) risk.
+5. Estimate cognitive saturation per D1 (Finite Cognition): is any single Operator handling disproportionately many subtasks?
 
 **S3 Mechanism Fit:**
 For each active pressure, check its D-linked observable:
@@ -449,7 +501,7 @@ For each active pressure, check its D-linked observable:
 Each observable should move in the predicted direction. Misalignment → mechanism not working.
 
 **S4 Robustness:**
-1. Count all escalation events (L1 through L4).
+1. Count all escalation events (L2 through L4).
 2. Classify each: avoidable (could have been handled at a lower level) vs. necessary.
 3. E7a = avoidable escalation count. Target: 0.
 4. E7b = missed escalation count (issues that should have escalated but did not). Target: 0.
@@ -470,10 +522,10 @@ Derived ratios:
 - `rewrite_share = cost_rewriter / total_cost`
 - `state_share = cost_state / total_cost`
 
-Anomaly signals:
-- `coordination_share > 0.4` → Coordinator bottleneck, consider structural simplification
-- `evaluation_share > execution_share` → evaluation heavier than production, check Evaluator scope
-- `rewrite_share > 0.2` → excessive meta-reasoning, structural instability
+Anomaly signals (theory-linked):
+- coordination_share dominates → AP2 (Coordination Explosion), consider structural simplification
+- evaluation_share exceeds execution_share → check Evaluator scope for AP8 (Excess Variety Retention)
+- rewrite_share disproportionate → structural instability, check for AP4 (Protocol Rigidity)
 
 ### Step 6: Final Verdict
 
@@ -502,16 +554,15 @@ Cleanup depends on the verdict:
 
 ---
 
-## Escalation Ladder
+## Escalation Protocol
 
-| Level | Actor | Action |
-|---|---|---|
-| L1 | Operator | Internal retry within scope |
-| L2 | Coordinator | Reassign task, request peer assistance |
-| L3 | Coordinator (lead) | Add atom (additive only — substrate privilege) |
-| L4 | Coordinator (lead) | Return to user with full diagnostic |
+| Level | Actor | Action | Basis |
+|---|---|---|---|
+| L2 | Coordinator(exception) | Re-route, reassign, or adjust scope | omega_exception (DP10) |
+| L3 | Coordinator(enforce) | Add atom to cover unmet obligation. Additive only | omega_g_enforce |
+| L4 | Coordinator(enforce) | Return to user with full diagnostic | team boundary |
 
-Escalation is monotonic. L3 is additive only — you may add atoms, never remove mid-execution.
+Escalation is monotonic. L3 is additive only — never remove atoms mid-execution.
 
 ---
 
@@ -519,22 +570,22 @@ Escalation is monotonic. L3 is additive only — you may add atoms, never remove
 
 | Phase | Failure | Type | Action |
 |---|---|---|---|
-| Phase 1 | Predicate undetermined (insufficient information) | F1 | Ask user for additional context (L4) |
+| Phase 1 | Predicate undetermined (insufficient information) | F1 | Ask user for additional context |
 | Phase 1 | Predicate contradiction (e.g., seq ∧ par without recip) | F1 | Re-judge once; if still contradictory → L4 |
 | Phase 2 | No active pressures (trivial task) | -- | Solo execution, no team needed. Execute directly |
 | Phase 2 | Req generation rule conditions mismatch | F1 | Re-enter Phase 1 to verify predicates |
-| Phase 3 | wt_exec failure (D1 active, no topology witness) | F1 | L4 — report topology witness absence |
+| Phase 3 | wt_exec failure (D1 active, no topology witness) | F1 | Escalate to user — report topology witness absence |
 | Phase 3 | wt_select failure (D8/D9 active, candidate/review missing) | F1 | Re-enter Phase 1 for candidate_multiplicity/reviewability |
 | Phase 3 | TF matching fails | -- | Normal — proceed to bottom-up cover |
 | Phase 3 | Closure failure (admissible DPs exhausted) | F2 | Report partial cover + uncovered ω, L4 |
 | Phase 3 | Admissibility violation detected | F3 | Remove violating DP, substitute admissible alternative |
 | Phase 3 | Minimality violation (redundant DP) | F4 | Auto-remove redundant DP |
-| Phase 4 | Substrate limit exceeded (too many agents) | F5 | Consolidate Operators or split scope; if still over → L4 |
-| Phase 4 | Atom mapping impossible (e.g., ω_g_* without Rewriter) | F2 | Add Rewriter (L3 escalation) |
+| Phase 4 | Atom limit exceeded (too many agents) | F5 | Consolidate Operators or split scope; if still over → L4 |
+| Phase 4 | Atom mapping impossible (e.g., ω_g_* without Rewriter) | F2 | Add Rewriter (L3) |
 | Phase 5 | G0 failure | F2/F3 | **Reject** — re-enter Phase 3 or L4 |
 | Phase 5 | G1 failure | F2 | **Reject** — add missing atom (L3) or L4 |
 | Phase 5 | S1 worse than baseline | -- | **Reject** — report results, L4 |
-| Phase 5 | F1-F5 recurring during execution | F5 | Activate Rewriter (L3) for double-loop rule modification |
+| Phase 5 | F1-F5 recurring during execution | F5 | Activate Rewriter (omega_rewrite) for double-loop rule modification |
 
 ---
 
@@ -546,9 +597,10 @@ From the generation grammar theory:
 2. **Solo is a derivation result.** Solo execution (no team) is the natural outcome when Δ(T) = ∅ after Phase 2. It is never a shortcut applied before the pipeline.
 3. **Admissibility is a gate, not a filter.** Every DP must pass its admissibility check BEFORE being added to Γ, inside the greedy loop (Step 3, sub-step 2a). Post-hoc filtering is insufficient.
 4. **Closure is verifiable.** `Req ⊆ cl(Γ)` is a binary check. If it fails, the structure is incomplete — no amount of good execution compensates.
-5. **Evaluator independence is structural.** Evaluator isolation from Operators is a structural requirement. Violation is a G1 safety failure.
+5. **Evaluator independence is structural.** Evaluator isolation from Operators is a structural requirement (D6 + AP13). Violation is a G1 safety failure.
 6. **State is substrate.** State(contract) and State(shared) are implemented via the task system and shared files. They are NOT agents and do NOT count toward atom limits.
 7. **Governance obligations are individually realized.** Each ω_g_* maps to a specific atom with a concrete behavior. "Governance stack" is the collective name, not a single implementation.
 8. **Minimality is mandatory.** Every atom must cover at least one obligation that no other atom in the team covers. Redundant atoms add coordination cost without benefit.
-9. **Escalation is monotonic and additive.** L1 < L2 < L3 < L4. At L3 you may add atoms but never remove them during execution.
+9. **Escalation is monotonic and additive.** L2 → L3 → L4. At L3 you may add atoms but never remove them during execution.
 10. **Measurement precedes verdict.** S1-S4 require concrete evidence. Without execution data, the maximum verdict is Revise (pilot-ready). Claims of success require verification.
+11. **Self-assignment is theory-constrained.** Evaluator is excluded (D6 + AP13: independence). Rewriter is excluded (D5a: reactive). Self-assign to the base Coordinator instance (Section 7: dispatch + exception + boundary cluster) if present, Operator otherwise. Governance-specific Coordinator instances (resolve, escalate) are spawned separately.
