@@ -18,7 +18,7 @@ You may be one of multiple Operators working in parallel (omega_par), in a seque
 The team's shared state is substrate, not an agent:
 
 - **State(contract):** Your task description (via TaskGet) contains your acceptance criteria. This is your contract — the standard against which your output will be evaluated.
-- **State(shared):** The shared context file (path in your brief) carries cross-cutting state. Read it before starting. Write to it when your work produces information other Operators need.
+- **State(shared):** The shared context file (path in your brief) carries cross-cutting state. Read it before starting. Write to it when your work produces information other Operators need. **Size limit: 200 lines.** If State(shared) has been split into topic-specific files with an index, read the index first, then follow links as needed. When writing, append to the appropriate topic file, not the index (P1: Finite Cognition).
 - **State(contract+shared):** When both are active, your task description is the contract and the shared file provides continuity across phases.
 - Your write scope is limited to assigned deliverables and the shared context file.
 
@@ -27,8 +27,8 @@ The team's shared state is substrate, not an agent:
 1. **Read your contract.** TaskGet your assigned task. The acceptance criteria ARE the contract (omega_contract substrate).
 2. **Read shared state.** Check the shared context file for information from prior phases or peer Operators (omega_shared substrate).
 3. **Execute independently.** Produce the deliverables specified in your brief. Do not wait for others unless your brief explicitly requires input.
-4. **Update shared state.** When your work produces information others need, write it to the shared context file.
-5. **Report completion.** SendMessage artifacts and status to Coordinator at completion.
+4. **Update shared state.** When your work produces cross-cutting information that multiple atoms may reference at different times, write it to State(shared) (P3: Information Locality).
+5. **Report completion.** SendMessage artifacts and status to Coordinator at completion. Use SendMessage for direct communication with a known recipient; use State(shared) for information with no single recipient.
 6. **Stay in scope.** If you discover work outside your brief, report it — don't do it.
 
 ## Delegation Boundary

@@ -21,7 +21,7 @@ Reference: `../../references/AGENT_TEAM_THEORY.md`
 - **Operator**: fulfills ω_par, ω_seq, ω_variety
 - **Coordinator**: fulfills ω_dispatch, ω_exception, ω_boundary
 - **Evaluator**: fulfills ω_verify, ω_select (+ DP3 adversarial, DP6+ audit overlays)
-- **Rewriter**: fulfills ω_rewrite, ω_g_rule
+- **Rewriter**: fulfills ω_rewrite
 - **State**: substrate (NOT agent) — task system + shared context files
 
 ### Obligation-to-Atom Mapping
@@ -39,7 +39,7 @@ Reference: `../../references/AGENT_TEAM_THEORY.md`
 | ω_select | Evaluator(select) | 1 |
 | ω_rewrite | Rewriter | 1 |
 | ω_variety | Operator | k with diversified briefs |
-| ω_g_rule | Rewriter | governance: proposes/applies rules |
+| ω_g_rule | Coordinator(rule) | governance: defines/manages rules |
 | ω_g_resolve | Coordinator(resolve) | governance: mediates conflicts |
 | ω_g_monitor | Evaluator(audit) | governance: compliance monitoring |
 | ω_g_enforce | Coordinator(enforce) | governance: enforcement |
@@ -61,8 +61,10 @@ State is substrate, not an agent. Three modes, all file-system-based, persistent
 
 - **State(message)** is an implementation convenience for coordination and audit metadata. It is not a separate theory-level obligation and is never primary evidence for output correctness in verify/select modes.
 - State(contract): Coordinator writes contracts; all atoms read via TaskGet/TaskList; Evaluator(verify) enforces.
-- State(shared): Operators write cross-cutting state; all atoms read it; Coordinator mediates conflicts.
-- State(message): SendMessage writes coordination logs; Evaluator(audit) may inspect routing, escalation, and protocol-compliance metadata only. Verify/select modes must ignore operator self-reports as evidence.
+- State(shared): cross-cutting state that multiple atoms may reference at different times (omega_shared: continuity + multi-party access). Operators are the primary writers; Coordinator mediates conflicts. **Size limit: 200 lines.** When State(shared) exceeds 200 lines, Coordinator must split it into topic-specific files (e.g., `_shared/api-design.md`, `_shared/decisions.md`) and maintain `_shared/context.md` as an index with links. Atoms read the index first, then follow links as needed. This derives from P1 (Finite Cognition) applied to shared substrate.
+- State(message): point-to-point communication with a known recipient — requests, reports, status updates (P3: Information Locality). Evaluator(audit) may inspect routing, escalation, and protocol-compliance metadata only. Verify/select modes must ignore operator self-reports as evidence.
+
+**State(shared) vs SendMessage:** Write to State(shared) when the information has no single recipient and may be read by any atom at any time. Use SendMessage when the recipient is known and the message is addressed to a specific atom. Do not duplicate: if it belongs in shared state, write it there; if it is a direct communication, send it.
 - State(contract) and State(message) are deleted by TeamDelete. State(shared) lives in the project directory and survives.
 
 ### Access Model
@@ -79,7 +81,8 @@ Spawned teammate permissions:
 
 - **Evaluator**: Read-only access to all three State modes. No write to any State mode. Independence required by D6 / AP13.
 - **Operator**: reads tasks and messages peers, may write scoped deliverables plus State(shared), but cannot create/modify tasks or governance artifacts.
-- **Coordinator**: owns State(contract) write side for its dispatch domain.
+- **Coordinator**: owns State(contract) write side for its dispatch domain. Mediates State(shared) — writes mediation results and propagates rule changes from Rewriter.
+- **Rewriter**: Write/Edit for governance artifact files only. Does NOT write to State(shared) directly — submits proposals to Coordinator, who applies approved changes. Canonical fragment: Rewriter connects to Coordinator, not to State.
 
 ---
 
@@ -194,13 +197,13 @@ Compare Req and Σ against Task Family canonical tables.
 
 | Family | base Σ | base Req | base Γ (closure-verified) |
 |---|---|---|---|
-| TF1 Frontline Intake | {seq, handoff} | {ω_seq, ω_contract} | {DP1, DP9} |
+| TF1 Frontline Intake | {seq, handoff} | {ω_seq, ω_contract} | {DP1} |
 | TF2a Dispatch-Ops | {dispatch, handoff} | {ω_dispatch, ω_contract} | {DP11, DP9} |
 | TF2b Program Orchestration | {dispatch, continuity, spillover} | {ω_dispatch, ω_shared, ω_boundary} | {DP11, DP12, DP7} |
 | TF3 Sales/Brokerage | {continuity, spillover} | {ω_shared, ω_boundary} | {DP12, DP7} |
 | TF4 Procurement/Planning | {continuity, spillover, candidate_multiplicity, reviewability} | {ω_shared, ω_boundary, ω_select} | {DP12, DP7, DP13} |
 | TF5 Regulated Review | {handoff, checkable} | {ω_contract, ω_verify} | {DP9, DP6} |
-| TF6 Technical Build | {par, handoff, continuity, checkable} | {ω_par, ω_contract, ω_shared, ω_verify} | {DP2, DP9, DP12, DP6} |
+| TF6 Technical Build | {par, handoff, continuity, checkable} | {ω_par, ω_contract, ω_shared, ω_verify} | {DP2, DP12, DP6} |
 | TF7 Care Delivery | {dispatch, continuity} | {ω_dispatch, ω_shared} | {DP11, DP12} |
 | TF8 Creative/Editorial | {par, continuity} | {ω_par, ω_shared} | {DP2, DP12} |
 
@@ -215,8 +218,8 @@ DP coverage table:
 
 | DP | Covers | Admissibility |
 |---|---|---|
-| DP1 | {ω_seq} | -- |
-| DP2 | {ω_par} | -- |
+| DP1 | {ω_seq, ω_contract} | -- |
+| DP2 | {ω_par, ω_contract} | -- |
 | DP11 | {ω_dispatch} | -- |
 | DP9 | {ω_contract} | -- |
 | DP12 | {ω_shared} | -- |
@@ -280,7 +283,7 @@ After Phase 3 completes, present the analysis report to the user before proceedi
    | ω_select | Evaluator(select) | 1 | spawned (D6 independence) |
    | ω_rewrite | Rewriter | 1 | spawned (D5a reactive) |
    | ω_variety | Operator | k with diversified briefs | |
-   | ω_g_rule | Rewriter | governance stack | |
+   | ω_g_rule | Coordinator(rule) | governance stack | spawned separately |
    | ω_g_resolve | Coordinator(resolve) | governance stack | spawned separately |
    | ω_g_monitor | Evaluator(audit) | governance stack | |
    | ω_g_enforce | Coordinator(enforce) | governance stack | base instance |
@@ -325,7 +328,7 @@ If R12 produced governance obligations, the governance stack is mandatory, not o
 
 | Obligation | Realized by | Concrete behavior |
 |---|---|---|
-| ω_g_rule | Rewriter | Proposes rule modifications, submits to Coordinator(enforce) for approval. |
+| ω_g_rule | Coordinator(rule) | Defines and manages governance rules. Receives modification proposals from Rewriter (omega_rewrite). |
 | ω_g_resolve | Coordinator(resolve) | Mediates conflicts between atoms per boundary rules. |
 | ω_g_monitor | Evaluator(audit) | At phase boundaries, checks rule adherence, reports AP violations. |
 | ω_g_enforce | Coordinator(enforce) | Enforcement: L3 (add atom) or L4 (return to user). |
@@ -392,7 +395,8 @@ Agent({
 - Spawn all **parallel Operators simultaneously** (multiple Agent calls in one message).
 - If governance is active, spawn additional Coordinators for ω_g_resolve / ω_g_escalate.
 - Spawn **Evaluator** alongside others; if ω_g_monitor is active, include audit checkpoints in its brief.
-- Spawn **Rewriter** immediately when ω_g_rule or ω_rewrite is active.
+- Spawn **Rewriter** when ω_rewrite is active (D5a + recurrence detected).
+- Spawn **Coordinator(rule)** when ω_g_rule is active (governance stack).
 - Each prompt MUST include: assigned task IDs, shared context file path, team name, communication boundaries.
 
 **After spawning, assign tasks:**
@@ -581,7 +585,7 @@ Escalation is monotonic. L3 is additive only — never remove atoms mid-executio
 | Phase 3 | Admissibility violation detected | F3 | Remove violating DP, substitute admissible alternative |
 | Phase 3 | Minimality violation (redundant DP) | F4 | Auto-remove redundant DP |
 | Phase 4 | Atom limit exceeded (too many agents) | F5 | Consolidate Operators or split scope; if still over → L4 |
-| Phase 4 | Atom mapping impossible (e.g., ω_g_* without Rewriter) | F2 | Add Rewriter (L3) |
+| Phase 4 | Atom mapping impossible (e.g., ω_g_rule without Coordinator(rule)) | F2 | Add missing atom (L3) |
 | Phase 5 | G0 failure | F2/F3 | **Reject** — re-enter Phase 3 or L4 |
 | Phase 5 | G1 failure | F2 | **Reject** — add missing atom (L3) or L4 |
 | Phase 5 | S1 worse than baseline | -- | **Reject** — report results, L4 |

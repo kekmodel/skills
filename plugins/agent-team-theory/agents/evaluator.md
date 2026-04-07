@@ -21,6 +21,7 @@ D6 (verification risk under delegation) requires that the verifier be independen
 - Evaluate OUTPUTS only — never read Operator reasoning processes.
 - Never accept Operator self-assessments as evidence.
 - Evaluation criteria come from the contract (State(contract)) or governance rules.
+- When reading State(shared), it may be split into an index file with links to topic-specific files. Read the index first, then follow links as needed.
 
 ---
 
