@@ -28,5 +28,5 @@ claude plugins add /absolute/path/to/agent-team-theory
 |---|---|---|
 | operator | omega_par, omega_seq, omega_variety | Task execution |
 | coordinator | omega_dispatch, omega_exception, omega_boundary, omega_g_rule | Dispatch, boundaries, exceptions, governance rules |
-| evaluator | omega_verify, omega_select | Verify, select, adversarial, audit (4 modes) |
+| evaluator | omega_verify, omega_select | Verify, select, adversarial, monitor (4 modes) |
 | rewriter | omega_rewrite | Rule modification proposals (DP5 double-loop) |

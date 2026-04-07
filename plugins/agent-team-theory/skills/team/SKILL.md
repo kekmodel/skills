@@ -20,7 +20,7 @@ Reference: `../../references/AGENT_TEAM_THEORY.md`
 
 - **Operator**: fulfills ω_par, ω_seq, ω_variety
 - **Coordinator**: fulfills ω_dispatch, ω_exception, ω_boundary
-- **Evaluator**: fulfills ω_verify, ω_select (+ DP3 adversarial, DP6+ audit overlays)
+- **Evaluator**: fulfills ω_verify, ω_select (+ DP3 adversarial, ω_g_monitor overlays)
 - **Rewriter**: fulfills ω_rewrite
 - **State**: substrate (NOT agent) — task system + shared context files
 
@@ -41,7 +41,7 @@ Reference: `../../references/AGENT_TEAM_THEORY.md`
 | ω_variety | Operator | k with diversified briefs |
 | ω_g_rule | Coordinator(rule) | governance: defines/manages rules |
 | ω_g_resolve | Coordinator(resolve) | governance: mediates conflicts |
-| ω_g_monitor | Evaluator(audit) | governance: compliance monitoring |
+| ω_g_monitor | Evaluator(monitor) | governance: compliance monitoring |
 | ω_g_enforce | Coordinator(enforce) | governance: enforcement |
 | ω_g_escalate | Coordinator(escalate) | governance: routes to Coordinator(enforce) |
 
@@ -62,7 +62,7 @@ State is substrate, not an agent. Three modes, all file-system-based, persistent
 - **State(message)** is an implementation convenience for coordination and audit metadata. It is not a separate theory-level obligation and is never primary evidence for output correctness in verify/select modes.
 - State(contract): Coordinator writes contracts; all atoms read via TaskGet/TaskList; Evaluator(verify) enforces.
 - State(shared): cross-cutting state that multiple atoms may reference at different times (omega_shared: continuity + multi-party access). Operators are the primary writers; Coordinator mediates conflicts. **Size limit: 200 lines.** When State(shared) exceeds 200 lines, Coordinator must split it into topic-specific files (e.g., `_shared/api-design.md`, `_shared/decisions.md`) and maintain `_shared/context.md` as an index with links. Atoms read the index first, then follow links as needed. This derives from P1 (Finite Cognition) applied to shared substrate.
-- State(message): point-to-point communication with a known recipient — requests, reports, status updates (P3: Information Locality). Evaluator(audit) may inspect routing, escalation, and protocol-compliance metadata only. Verify/select modes must ignore operator self-reports as evidence.
+- State(message): point-to-point communication with a known recipient — requests, reports, status updates (P3: Information Locality). Evaluator(monitor) may inspect routing, escalation, and protocol-compliance metadata only. Verify/select modes must ignore operator self-reports as evidence.
 
 **State(shared) vs SendMessage:** Write to State(shared) when the information has no single recipient and may be read by any atom at any time. Use SendMessage when the recipient is known and the message is addressed to a specific atom. Do not duplicate: if it belongs in shared state, write it there; if it is a direct communication, send it.
 - State(contract) and State(message) are deleted by TeamDelete. State(shared) lives in the project directory and survives.
@@ -90,7 +90,7 @@ Spawned teammate permissions:
 
 1. **Flat atom structure.** No atom may create sub-teams. New structure must be derived through the composition calculus.
 2. **Evaluator isolation.** Evaluator communicates ONLY with the Coordinator fulfilling omega_dispatch (D6 + AP13). Never with Operators or Rewriter.
-3. **Evaluator(audit) at phase boundaries.** Evaluator reads State(contract) and State(shared) directly, and may inspect State(message) metadata for routing/escalation compliance only. It must not treat operator self-assessments as evidence for output correctness.
+3. **Evaluator(monitor) at phase boundaries.** Evaluator reads State(contract) and State(shared) directly, and may inspect State(message) metadata for routing/escalation compliance only. It must not treat operator self-assessments as evidence for output correctness.
 4. **Structure overflow.** If atom count exceeds ~8 → consolidate Operators or split scope into phases. If still over → F5, L4.
 
 ---
@@ -227,7 +227,7 @@ DP coverage table:
 | DP10 | {ω_exception} | -- |
 | DP6 | {ω_verify} | -- |
 | DP13 | {ω_select} | ONLY if candidate_multiplicity ∧ reviewability |
-| DP3 | {ω_verify} | Review alias; ONLY if checkable ∧ natural_counterhypothesis |
+| DP3 | {ω_select} ∪ {ω_verify if checkable} | Review alias; checkable required. If natural_counterhypothesis ∉ Σ(T), requires DP8 as companion |
 | DP5 | {ω_rewrite} | -- |
 | DP8 | {ω_variety} | -- |
 | DP4 | {ω_g_rule, ω_g_resolve, ω_g_monitor, ω_g_enforce, ω_g_escalate} | ONLY if D4a ∧ D5 ∧ recip |
@@ -248,7 +248,16 @@ DP coverage table:
 - Pass → Step 5.
 - Fail → should not happen if Step 3 completed, but if so → F2, L4.
 
-### Step 5: Minimality
+### Step 5: Normal Form Expansion
+
+Expand composites to their sanctioned normal form (Section 6):
+- If `DP3 ∈ Γ`: replace with `nf(DP3) = {DP13} ∪ {DP6 if checkable ∈ Σ(T)}`
+- If `DP4 ∈ Γ`: `nf(DP4) = {DP4}` (already in normal form)
+- All other DPs are their own normal form.
+
+Recompute `cl(Γ)` after expansion.
+
+### Step 6: Minimality
 
 - For each dp in Γ: would `Γ - {dp}` still have `Req ⊆ cl(Γ - {dp})`?
 - If yes: remove dp (redundant).
@@ -285,7 +294,7 @@ After Phase 3 completes, present the analysis report to the user before proceedi
    | ω_variety | Operator | k with diversified briefs | |
    | ω_g_rule | Coordinator(rule) | governance stack | spawned separately |
    | ω_g_resolve | Coordinator(resolve) | governance stack | spawned separately |
-   | ω_g_monitor | Evaluator(audit) | governance stack | |
+   | ω_g_monitor | Evaluator(monitor) | governance stack | |
    | ω_g_enforce | Coordinator(enforce) | governance stack | base instance |
    | ω_g_escalate | Coordinator(escalate) | governance stack | spawned separately |
 
@@ -330,7 +339,7 @@ If R12 produced governance obligations, the governance stack is mandatory, not o
 |---|---|---|
 | ω_g_rule | Coordinator(rule) | Defines and manages governance rules. Receives modification proposals from Rewriter (omega_rewrite). |
 | ω_g_resolve | Coordinator(resolve) | Mediates conflicts between atoms per boundary rules. |
-| ω_g_monitor | Evaluator(audit) | At phase boundaries, checks rule adherence, reports AP violations. |
+| ω_g_monitor | Evaluator(monitor) | At phase boundaries, checks rule adherence, reports AP violations. |
 | ω_g_enforce | Coordinator(enforce) | Enforcement: L3 (add atom) or L4 (return to user). |
 | ω_g_escalate | Coordinator(escalate) | Routes unresolvable issues to Coordinator(enforce). |
 
@@ -343,7 +352,7 @@ You are one of the atoms in the derived structure. Determine which role you fulf
 - **Rewriter**: excluded. Rewriter is a reactive role (D5a + recurrence → omega_rewrite) activated when recurring exceptions are detected, not at team formation.
 
 **Assignment rule:**
-- **Coordinator in roster** → self-assign to the base Coordinator instance (the one carrying the hub obligations: dispatch + exception + boundary, per Section 7 "same instance" clustering). Governance-specific instances (resolve, escalate) are spawned separately. Spawn all other atoms.
+- **Coordinator in roster** → self-assign to the base Coordinator instance (the one carrying the hub obligations: dispatch + exception + boundary, per Section 7 "same instance" clustering). Governance-specific instances (rule, resolve, escalate) are spawned separately. Spawn all other atoms.
 - **No Coordinator in roster** → self-assign to one of the Operators. Spawn the remaining atoms.
 
 ### Step 4: Atom Limit Check
@@ -394,7 +403,7 @@ Agent({
 **Spawning rules:**
 - Spawn all **parallel Operators simultaneously** (multiple Agent calls in one message).
 - If governance is active, spawn additional Coordinators for ω_g_resolve / ω_g_escalate.
-- Spawn **Evaluator** alongside others; if ω_g_monitor is active, include audit checkpoints in its brief.
+- Spawn **Evaluator** alongside others; if ω_g_monitor is active, include monitor checkpoints in its brief.
 - Spawn **Rewriter** when ω_rewrite is active (D5a + recurrence detected).
 - Spawn **Coordinator(rule)** when ω_g_rule is active (governance stack).
 - Each prompt MUST include: assigned task IDs, shared context file path, team name, communication boundaries.
@@ -607,4 +616,4 @@ From the generation grammar theory:
 8. **Minimality is mandatory.** Every atom must cover at least one obligation that no other atom in the team covers. Redundant atoms add coordination cost without benefit.
 9. **Escalation is monotonic and additive.** L2 → L3 → L4. At L3 you may add atoms but never remove them during execution.
 10. **Measurement precedes verdict.** S1-S4 require concrete evidence. Without execution data, the maximum verdict is Revise (pilot-ready). Claims of success require verification.
-11. **Self-assignment is theory-constrained.** Evaluator is excluded (D6 + AP13: independence). Rewriter is excluded (D5a: reactive). Self-assign to the base Coordinator instance (Section 7: dispatch + exception + boundary cluster) if present, Operator otherwise. Governance-specific Coordinator instances (resolve, escalate) are spawned separately.
+11. **Self-assignment is theory-constrained.** Evaluator is excluded (D6 + AP13: independence). Rewriter is excluded (D5a: reactive). Self-assign to the base Coordinator instance (Section 7: dispatch + exception + boundary cluster) if present, Operator otherwise. Governance-specific Coordinator instances (rule, resolve, escalate) are spawned separately.

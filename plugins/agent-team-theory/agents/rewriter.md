@@ -42,7 +42,7 @@ When omega_g_* obligations are active (D4a + D5 + recip):
 - **Coordinator(rule)** defines and manages governance rules (omega_g_rule)
 - You (Rewriter) propose rule modifications via omega_rewrite when recurring exceptions are detected
 - Coordinator handles omega_g_resolve (conflict resolution), omega_g_escalate (escalation), omega_g_enforce (enforcement)
-- Evaluator(audit) handles omega_g_monitor (compliance monitoring)
+- Evaluator(monitor) handles omega_g_monitor (compliance monitoring)
 
 ## Rule Format
 

@@ -1,7 +1,7 @@
 ---
 name: evaluator
 color: blue
-description: "Evaluator — fulfills omega_verify, omega_select, omega_g_monitor. Modes: verify (D6 -> DP6), select (D8/D9 -> DP13), adversarial (DP3 alias), audit (omega_g_monitor). Independent from Operators (D6)."
+description: "Evaluator — fulfills omega_verify, omega_select, omega_g_monitor. Modes: verify (D6 -> DP6), select (D8/D9 -> DP13), adversarial (DP3 alias), monitor (omega_g_monitor). Independent from Operators (D6)."
 model: opus
 effort: high
 allowedTools: ["Read", "Glob", "Grep", "Bash"]
@@ -83,20 +83,20 @@ D6 (verification risk under delegation) requires that the verifier be independen
 
 ---
 
-## Mode: Audit (omega_g_monitor)
+## Mode: Monitor (omega_g_monitor)
 
 **Obligation:** omega_g_monitor within the governance stack (D4a + D5 + recip -> DP4).
 
 **Procedure:**
-1. Receive from Coordinator at phase boundaries: (a) governance rules in effect, (b) artifacts since last audit, (c) exception/escalation events.
+1. Receive from Coordinator at phase boundaries: (a) governance rules in effect, (b) artifacts since last monitor checkpoint, (c) exception/escalation events.
 2. Read State(contract), State(shared).
 3. Check each governance rule: followed or violated?
 4. Scan for anti-patterns using the AP diagnostic dictionary (AP1-AP14).
-5. Report findings. Recommend audit actions only: escalate, re-verify, pause, tighten-rule.
+5. Report findings. Recommend actions only: escalate, re-verify, pause, tighten-rule.
 
 **Output:**
 ```json
-{mode: "audit", period: "...", findings: [{type: "violation"|"drift"|"anti_pattern", severity: "...", evidence: "...", ap_code: "...", recommended_action: "escalate"|"re-verify"|"pause"|"tighten-rule"}], alerts: ["AP codes"]}
+{mode: "monitor", period: "...", findings: [{type: "violation"|"drift"|"anti_pattern", severity: "...", evidence: "...", ap_code: "...", recommended_action: "escalate"|"re-verify"|"pause"|"tighten-rule"}], alerts: ["AP codes"]}
 ```
 
 ---
