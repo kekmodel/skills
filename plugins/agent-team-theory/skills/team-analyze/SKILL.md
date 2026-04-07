@@ -1,254 +1,228 @@
 ---
 name: team-analyze
-description: "Analyze a task and recommend the best supported team architecture without creating a team or executing anything."
+description: "Analyze a task using the generation grammar pipeline (T → Σ → Δ → Req → Γ) and recommend team structure. Analysis only — no execution."
 user_invocable: true
 ---
 
 # Team Analyze
 
-You analyze a task and recommend the best supported architecture for the current Claude Code substrate.
+You analyze a task using the generation grammar pipeline and recommend a team structure.
 
-This skill is **analysis only**.
+This skill is **analysis only**. Do NOT create a team, spawn agents, or execute.
 
-Do NOT:
-- create a team
-- spawn agents
-- ask for execution approval
-- continue into execution after the report
+Reference: `../../references/AGENT_TEAM_THEORY.md`
+
+## Structure Grammar Atoms
+
+4 active agents + 1 substrate:
+
+- **Operator**: fulfills ω_par, ω_seq, ω_variety
+- **Coordinator**: fulfills ω_dispatch, ω_exception, ω_boundary
+- **Evaluator**: fulfills ω_verify, ω_select (+ DP3 adversarial, DP6+ audit overlays)
+- **Rewriter**: fulfills ω_rewrite, ω_g_rule
+- **State**: substrate (NOT agent) — task system + shared context files
 
 ## Substrate Constraints
 
-- In Claude Code, only the MAIN/orchestrator agent can create teams.
-- This skill recommends from the supported execution set: **A0-A5, A7, A8**.
-- **A6 (Swarm)** is useful conceptually for large homogeneous pooled work, but is **not supported for direct execution here**. If A6 is the best conceptual fit, say so and recommend the closest supported fallback, usually A3 or A8.
-
-## Agent Primitives
-
-- **Teammate**: persistent agent within a team (Agent + SendMessage via TeamCreate). Used for all team members.
-- **Subagent**: one-shot agent without team membership. Used for pre-team task analysis and by teammates internally.
+- **TeamCreate orchestrator-only**: only the orchestrator can create teams. Team topology is created upfront in Phase 4.
+- **Max 2-level hierarchy**: orchestrator → atoms. No deeper nesting.
+- **Evaluator isolation**: Evaluator communicates with orchestrator only (independence required by D6 / G1).
+- **Checkpoint audit**: Evaluator(audit) operates at phase boundaries only (teammates go idle after each turn).
+- **Practical atom limit**: ~8 agents. If the derived structure exceeds this, Operators must be consolidated or the task split into phases.
 
 ---
 
-## Step 1: A0 Fast-Path Check
+## Phase 1: Typing `T → Σ(T)`
 
-Quick scan before deep analysis:
-- Is this a single, self-contained task?
-- Can one agent handle it without meaningful coordination overhead?
-- Does it look like less than about 30 minutes of focused work?
-- Is verification straightforward enough that failure would be obvious quickly?
-- If it goes wrong, are the effects easy to undo, contain, or recover from?
+**Procedure:** For each of the 12 predicates, ask the question and answer true/false with evidence.
 
-If **all** answers are yes → recommend **A0 (solo)**. If any answer is no or unclear, do the full analysis instead of taking the fast path.
+| # | Predicate | Question to answer |
+|---|---|---|
+| 1 | seq | Does the output of one subtask feed as required input to another? |
+| 2 | par | Can two or more subtasks run independently in parallel? |
+| 3 | recip | Do two subtasks need to iterate bidirectionally on shared state? |
+| 4 | dispatch | Must work be classified and routed to different specialists? |
+| 5 | handoff | Are there discrete stage transitions between work phases? |
+| 6 | continuity | Must information persist across phases or agents? |
+| 7 | recurrence | Do similar exceptions or task patterns recur? |
+| 8 | candidate_multiplicity | Can multiple valid solutions be generated independently? |
+| 9 | reviewability | Can a reviewer assess output quality without being the producer? |
+| 10 | spillover | Can one subtask's failure or output affect others beyond its boundary? |
+| 11 | checkable | Do tests, specs, or objective criteria exist for pass/fail? |
+| 12 | natural_counterhypothesis | Do meaningfully different solution strategies exist? |
 
-**Principle:** Never pay coordination cost you can't justify.
-
----
-
-## Step 2: 3-Axis Analysis
-
-Assess the task on three independent axes:
-
-**Axis 1 — Interdependence Type**
-
-| Signal | Type |
-|--------|------|
-| Subtasks share no state, can run independently | **Pooled** |
-| Output of A feeds into B feeds into C | **Sequential** |
-| A and B must iterate on shared state, mutual feedback | **Reciprocal** |
-| Same task should be attempted independently, then selected or ranked after the fact | **Replicated** |
-
-Proxies for code tasks: import graph coupling, test co-occurrence, shared config.
-Proxies for knowledge tasks: sub-question dependency, argument chain structure.
-
-**Axis 2 — Scale × Heterogeneity**
-
-| Scale | Heterogeneity | Meaning |
-|-------|---------------|---------|
-| Small (<3 subtasks) | Low | One person could do it, just needs help |
-| Medium (3-8) | Medium | Multiple domains or perspectives needed |
-| Large (8+) | High | Multi-domain, requires deep specialization |
-
-Proxies: file count, domain count, required expertise breadth.
-
-**Axis 3 — Uncertainty**
-
-| Level | Signal |
-|-------|--------|
-| Low | Concrete spec, known solution pattern, clear success criteria |
-| Medium | Some ambiguity, multiple valid approaches, partial spec |
-| High | Exploratory, no clear solution, subjective quality |
-
-**Separate assessment — Verification Risk** (not part of axis 3):
-- How hard is it to verify the output is correct?
-- 0.0 (trivial — run tests) to 1.0 (impossible — subjective/novel)
-
-**Separate assessment — Reversibility / Externality**:
-- If this goes wrong, how costly is it to undo, contain, or recover from it?
-- Would the side effects stay local, or propagate to users, systems, data, or downstream work?
-- Low reversibility or high externality means the recommendation should be more conservative even if the architecture fit looks simple.
+**Decision rules:**
+- If a predicate cannot be determined: mark `unknown` with what information is needed.
+- If 3+ predicates are unknown → STOP. Ask the user for clarification before proceeding.
+- Output: `Σ(T) = {predicate: value, evidence: "..."}` for all 12.
 
 ---
 
-## Step 3: Confidence Check
+## Phase 2: Derivation `Σ(T) → Δ(T) → Req(Δ,Σ)`
 
-Rate your analysis confidence as **Low / Medium / High**:
-- **Low** (roughly < 0.3): ask the user for clarification instead of forcing a recommendation
-- **Medium** (roughly 0.3-0.5): prefer the lowest-cost architecture with clear escalation; start simple, but do not force A0 if A1 or A8 makes risk boundaries clearer
-- **High** (roughly ≥ 0.5): proceed normally
+### Step 1: Derive Active Pressures
 
-State why confidence is not high:
-- missing task facts
-- unclear success criteria
-- hidden dependencies
-- subjective quality bar
-- uncertain verification path
+**Procedure:** For each pressure, check the activation condition against the task.
 
-**Principle:** Under uncertainty, prefer a low-cost structure with clear escalation over a high-cost structure with weak rationale.
+| Pressure | Activation condition |
+|---|---|
+| D1 | Task exceeds single-agent capacity |
+| D2 | Decomposition adds coordination cost |
+| D2a | All coordination flows through one point |
+| D3 | Handoffs require explicit state representation |
+| D4 | Where decisions are made affects outcomes |
+| D4a | Cannot maximize both local freedom and global coherence |
+| D5 | Edge cases fall outside defined rules |
+| D5a | Same exceptions keep happening |
+| D6 | Delegated work may be wrong and must be checked |
+| D7 | Team lacks enough response diversity |
+| D8 | Feedback doesn't distinguish quality levels |
+| D9 | Selection exists but candidate pool is homogeneous |
 
----
+**Decision rule:** If NO pressures are active → Δ(T) = ∅ → solo execution, no team needed. Report this and STOP.
 
-## Step 4: Candidate Narrowing
+### Step 2: Generate Obligations
 
-**Axis 1 → Base candidates:**
+**Procedure:** For each rule, check if conditions are met. If yes, add the obligation to Req.
 
-| Interdependence | Candidates |
-|----------------|------------|
-| Pooled | A3, A8 |
-| Sequential | A2 (if sequence is stable), A1/A8 (if not) |
-| Reciprocal | A1 (small), A4 (medium), A5 (large) |
-| Replicated | A7 |
+| # | Conditions | Obligation |
+|---|---|---|
+| R1 | D2 ∧ seq | ω_seq |
+| R2 | (D1 ∨ D2) ∧ par | ω_par |
+| R3 | D1 ∧ dispatch | ω_dispatch |
+| R4 | D3 ∧ handoff | ω_contract |
+| R5 | D3 ∧ continuity | ω_shared |
+| R6 | (D4 ∨ D4a) ∧ spillover | ω_boundary |
+| R7 | D5 | ω_exception |
+| R8 | D5a ∧ recurrence | ω_rewrite |
+| R9 | D6 | ω_verify |
+| R10 | D7 | ω_variety |
+| R11 | D8 ∧ D9 ∧ candidate_multiplicity ∧ reviewability | ω_select |
+| R12 | D4a ∧ D5 ∧ recip | ω_g_rule, ω_g_resolve, ω_g_monitor, ω_g_enforce, ω_g_escalate |
 
-**A6 note:** A6 (Swarm) exists in the architecture taxonomy but is NOT directly executable here. If A6 is the best conceptual fit, disclose the mismatch and choose the closest supported fallback (usually A3 or A8).
-
-**Axis 2 → Refine:**
-
-| Scale × Heterogeneity | Adjustment |
-|-----------------------|------------|
-| Small, low | Prefer A1 or A0 |
-| Medium, medium | A4, A8 |
-| Large, high | A5, A8 |
-| Large, homogeneous pooled work | Theoretical fit: A6 (unsupported here) → recommend A3/A8 with disclosure |
-| Quality-first, multiple plausible approaches | A7 viable |
-
-**Axis 3 → Overlay:**
-
-| Uncertainty | Overlay |
-|------------|---------|
-| Low | DP9 (interface standardization: explicit handoff schema, typed outputs, clear success shape) |
-| Medium | DP10 (exception queue: isolate ambiguous cases, keep clear cases moving, escalate the queue later) |
-| High | DP10 + DP5 (double-loop rule revision: revisit the governing rule, not just the latest mistake) + consider DP3 (adversarial review: actively search for hidden flaws) |
+Output: `Req(Δ,Σ) = {ω_..., ω_...}` with which rule produced each.
 
 ---
 
-## Step 5: Quality/Verification Overlays
+## Phase 3: Cover `Req → Γ → minimality`
 
-- **Verification risk ≥ 0.5** → Add DP6 (delegate-verify: separate producer from checker) or A7 overlay
-- **Verification risk ≥ 0.7** → Add DP3 (adversarial review: ask a reviewer to attack the proposal, not just inspect it)
-- **Low reversibility or high externality** → Tighten approval, prefer independent verification before irreversible actions, use staged execution where possible
-- **Multiple domains** → Check DP8 (weak tie exploration: add one external perspective with a meaningfully different brief) if capability gap exists
-- **Long-running** → Add DP5 (double-loop meta-agent: update the rules when the same exception keeps recurring)
+### Step 1: Well-Typedness (hard gate)
 
-**Overlay agents for the team composition preview:**
+Check in order:
+1. **wt_exec**: Is D1 active? If yes, does Σ contain at least one of {seq, par, dispatch}? If no topology witness → **STOP: F1. Report to user.**
+2. **wt_select**: Are D8 and D9 active? If yes, are both candidate_multiplicity and reviewability true? If not → re-enter Phase 1 to re-assess those two predicates. If still fails → **STOP: report to user.**
+3. **wt**: Both pass → proceed.
 
-| Overlay | Agent | When |
-|---------|-------|------|
-| DP3 | r3-adversary ×1 | High-stakes, hidden assumptions, or to pressure-test the proposal |
-| DP5 | r1-legislator ×1 | Long-running work where repeated exceptions suggest the rules need revision |
-| DP6 | r3-judge ×1 | High verification risk; producer should not grade its own work |
-| DP8 | r2-executor ×1 (different brief) | Capability gap, OOD, or team needs one meaningfully different viewpoint |
+### Step 2: TF Shortcut
 
-When two architectures both look plausible, prefer the one that localizes mistakes more cleanly, makes escalation more obvious, and keeps the fewest assumptions hidden inside one agent.
+Compare Req and Σ against Task Family canonical tables.
 
----
+**IMPORTANT:** A TF shortcut is valid ONLY if `Req(Δ,Σ) ⊆ cl(TF.base_Γ)` — the base Γ's closure must cover ALL of the TF's base Req. The corrected table:
 
-## Step 6: Anti-Pattern Guard
+| Family | base Σ | base Req | base Γ (closure-verified) |
+|---|---|---|---|
+| TF1 Frontline Intake | {seq, handoff} | {ω_seq, ω_contract} | {DP1, DP9} |
+| TF2a Dispatch-Ops | {dispatch, handoff} | {ω_dispatch, ω_contract} | {DP11, DP9} |
+| TF2b Program Orchestration | {dispatch, continuity, spillover} | {ω_dispatch, ω_shared, ω_boundary} | {DP11, DP12, DP7} |
+| TF3 Sales/Brokerage | {continuity, spillover} | {ω_shared, ω_boundary} | {DP12, DP7} |
+| TF4 Procurement/Planning | {continuity, spillover, candidate_multiplicity, reviewability} | {ω_shared, ω_boundary, ω_select} | {DP12, DP7, DP13} |
+| TF5 Regulated Review | {handoff, checkable} | {ω_contract, ω_verify} | {DP9, DP6} |
+| TF6 Technical Build | {par, handoff, continuity, checkable} | {ω_par, ω_contract, ω_shared, ω_verify} | {DP2, DP9, DP12, DP6} |
+| TF7 Care Delivery | {dispatch, continuity} | {ω_dispatch, ω_shared} | {DP11, DP12} |
+| TF8 Creative/Editorial | {par, continuity} | {ω_par, ω_shared} | {DP2, DP12} |
 
-Before finalizing, check all six:
+**Procedure:**
+1. For each TF: check `TF.base_Σ ⊆ Σ(T)` AND `TF.base_Req ⊆ Req(Δ,Σ)`.
+2. Full match → adopt TF.base_Γ as seed. Check `Req(Δ,Σ) ⊆ cl(seed)`. If yes, go to Step 4. If Req has extra obligations beyond TF base, supplement via Step 3.
+3. No match → Step 3 entirely.
 
-| Check | Anti-Pattern | Fix |
-|-------|-------------|-----|
-| Team size > 5? | AP2 (coordination explosion) | Reduce or hierarchize (A5) |
-| All agents same model/prompt? | AP1 (groupthink) | Diversify prompts or approaches |
-| Reviewer shares executor model, context, or rubric? | AP13 (mirror verification) | Re-isolate reviewer; prefer different model, otherwise use separate prompt/rubric/evidence path |
-| No escalation path? | AP9 (ghost governance) | Add explicit L1-L4 escalation |
-| Deep delegation chain? | AP6 (infinite delegation) | Cap at 2 levels |
-| Independent tasks split as dependent? | AP11 (false modularity) | Re-analyze interdependence |
+### Step 3: Bottom-Up Cover
 
----
+DP coverage table:
 
-## Step 7: Report
+| DP | Covers | Admissibility |
+|---|---|---|
+| DP1 | {ω_seq} | — |
+| DP2 | {ω_par} | — |
+| DP11 | {ω_dispatch} | — |
+| DP9 | {ω_contract} | — |
+| DP12 | {ω_shared} | — |
+| DP7 | {ω_boundary} | — |
+| DP10 | {ω_exception} | — |
+| DP6 | {ω_verify} | — |
+| DP13 | {ω_select} | ONLY if candidate_multiplicity ∧ reviewability |
+| DP3 | {ω_verify} | Review alias; ONLY if checkable ∧ natural_counterhypothesis |
+| DP5 | {ω_rewrite} | — |
+| DP8 | {ω_variety} | — |
+| DP4 | {ω_g_rule, ω_g_resolve, ω_g_monitor, ω_g_enforce, ω_g_escalate} | ONLY if D4a ∧ D5 ∧ recip |
 
-Present all ten sections to the user, then STOP. Do not create a team or spawn agents.
+**Procedure (greedy set cover with inline admissibility):**
+1. `R_remaining = Req - cl(Γ_seed)`. If no seed: `R_remaining = Req`, `Γ = ∅`.
+2. While R_remaining is non-empty:
+   a. For each DP NOT in Γ: check admissibility first. Skip inadmissible DPs.
+   b. Among admissible DPs: pick the one covering the most obligations in R_remaining.
+   c. Tie-break: lower DP number (simpler first).
+   d. Add selected DP to Γ. Update `R_remaining = Req - cl(Γ)`.
+3. If no admissible DP covers any remaining ω → STOP: **F2 cover failure**. Report partial cover + uncovered ω to user (L4).
 
-1. **3-axis analysis** — Interdependence type, Scale × Heterogeneity, Uncertainty level (with proxy evidence cited)
-2. **Verification risk** — score (0.0–1.0) and why
-3. **Reversibility / externality assessment** — what happens if this goes wrong and how far side effects spread
-4. **Analysis confidence** — Low/Medium/High, and why it is not higher
-5. **Recommended architecture and why** — name the pattern AND explain the concrete behavior it implies
-6. **Fallbacks considered** — alternatives you rejected and the reason each was ruled out
-7. **Overlay suggestions** — specific DPs with the concrete behavior each implies (do not just list the label)
-8. **Team composition preview** — roles × instances × models
+### Step 4: Closure Verification
 
-   Role-architecture mapping:
+- `cl(Γ) = ∪{covers(dp) | dp ∈ Γ}`
+- Check: `Req(Δ,Σ) ⊆ cl(Γ)`?
+- Pass → Step 5.
+- Fail → should not happen if Step 3 completed, but if so → F2, L4.
 
-   | Architecture | Roles | Instance Pattern |
-   |-------------|-------|-----------------|
-   | A0 Solo | (orchestrator alone) | — |
-   | A1 Simple | R2 workers | 1-3 R2; orchestrator acts as leader + R3 |
-   | A2 Pipeline | R2 per stage | N R2 (one per stage); direct chain handoff |
-   | A3 Network | R2 specialists | N R2 (independent); star from orchestrator |
-   | A4 Adhocracy | R2 peers | 2-4 peers (symmetric); mesh comms |
-   | A5 Divisional | R1 + R6 + R2 | hierarchy, max 2 levels |
-   | A7 Replicate-Select | R2 replicas + R3 judge | N R2 (isolated from each other) + 1 R3 (independent context) |
-   | A8 Federation | R6 + R2 specialists + R3 | R6 routes R2s; R3 verifies independently |
+### Step 5: Minimality
 
-   Model defaults: R1/R3 Judge → opus/high; R2 → sonnet/high (→ opus if reciprocal interdependence or high uncertainty); R3 Adversary/R4 Auditor → opus/max. R3/R4 MUST have an independent error mode from executors — prefer a different model; if same model, isolate context, rubric, and evidence path.
-
-9. **Risks and caveats** — assumptions that would change the recommendation, including verification risk and reversibility concerns
-10. **Decision path taken** — which branches you followed through the axes and why
-
-If A6 is the best conceptual fit, explicitly state: why A6 fits in theory, why it is not directly supported here, and which supported fallback you recommend instead.
-
----
-
-## Quick Reference: Selection Decision Tree
-
-```
-Task received
-├── Simple, self-contained? → A0 Solo
-├── Interdependence?
-│   ├── Pooled
-│   │   ├── Large, homogeneous batch work? → A6 in theory; unsupported here → A3 or A8 with disclosure
-│   │   ├── Need specialist routing? → A8 Federation
-│   │   └── Independent experts, no routing needed? → A3 Network
-│   ├── Sequential
-│   │   ├── Stable sequence? → A2 Pipeline
-│   │   └── Unstable? → A1 or A8
-│   ├── Reciprocal
-│   │   ├── Small team? → A1 Simple
-│   │   ├── Medium, creative? → A4 Adhocracy
-│   │   └── Large, multi-domain? → A5 Divisional
-│   └── Replicated
-│       └── Same task, multiple independent attempts + post-hoc selection? → A7 Replicate-Select
-├── High verification risk (≥ 0.5)? → Add DP6 or A7 overlay
-├── Very high verification risk (≥ 0.7)? → Add DP3 adversary
-├── High stakes? → Add DP3 adversary
-├── Long-running? → Add DP5 meta-agent
-└── Low confidence? → Ask for clarification or choose lowest-cost structure with clear escalation
-```
+- For each dp in Γ: would `Γ - {dp}` still have `Req ⊆ cl(Γ - {dp})`?
+- If yes: remove dp (redundant).
+- Repeat until irreducible.
 
 ---
 
-## Key Principles
+## Report Format
 
-- Don't pay coordination cost you can't justify. A0 is always available, but not always the right fast path.
-- A0 fast paths are only for work that is easy to verify and easy to recover from if wrong.
-- The user has final authority over whether to execute, change, or cancel the plan.
-- Keep decisions where the relevant information is. Don't over-centralize by default.
-- Use A7 when quality depends on multiple independent attempts plus post-hoc selection.
-- Escalate when uncertain. Better to pause than to guess badly.
-- Judges and verifiers must be independent from executors. Same-model verification is acceptable only with isolated context and a separate rubric/evidence path.
-- Labels like DP3, DP5, DP8, DP9, and DP10 are reminders for concrete behaviors — not substitutes for explaining the actual behavior you want.
-- When reporting a recommendation, substance beats taxonomy. Explain the behavior you want even if you also name the pattern.
+Present all 10 sections, then STOP.
 
-This file is an analyze-only entry point, but it teaches the same judgment habits as `/team`: do not invent a separate decision policy. If you use a pattern label, also explain the concrete behavior it implies.
+1. **Task Typing Σ(T)** — 12 predicates, each with value + evidence
+2. **Active Pressures Δ(T)** — active D list with activation reasoning
+3. **Required Obligations Req(Δ,Σ)** — ω list with rule # that produced each
+4. **Well-Typedness** — wt_exec, wt_select, wt results
+5. **Pattern Cover Γ** — DPs selected, admissibility verified, minimality verified
+6. **Task Family Match** — TF matched (full/partial/none) with reasoning
+7. **Realized Structure Preview** — atom instances × models:
+
+   | Obligation | Atom | Count |
+   |---|---|---|
+   | ω_par | Operator | 1 per parallel subtask |
+   | ω_seq | Operator | 1 per pipeline stage |
+   | ω_dispatch | Coordinator | 1 |
+   | ω_contract | State(contract) | substrate |
+   | ω_shared | State(shared) | substrate |
+   | ω_exception | Coordinator | same instance |
+   | ω_boundary | Coordinator | same instance |
+   | ω_verify | Evaluator(verify) | 1 |
+   | ω_select | Evaluator(select) | 1 |
+   | ω_rewrite | Rewriter | 1 |
+   | ω_variety | Operator | k with diversified briefs |
+   | ω_g_rule | Rewriter | governance stack |
+   | ω_g_resolve | Coordinator | governance stack |
+   | ω_g_monitor | Evaluator(audit) | governance stack |
+   | ω_g_enforce | Orchestrator | governance stack |
+   | ω_g_escalate | Coordinator | governance stack |
+
+   Model defaults: Operator → sonnet; Coordinator → sonnet; Evaluator → opus; Rewriter → opus.
+
+   If `ω_g_*` appears in Req, the preview must reserve at least: 1 peer Coordinator for `ω_g_resolve` / `ω_g_escalate`, 1 Rewriter for `ω_g_rule`, and 1 Evaluator in audit mode for `ω_g_monitor`.
+
+   Draw the Structure Grammar diagram.
+
+8. **Preliminary Structural Assessment** — G0 is assessable (closure test already done in Step 4). G1 is **preliminary** — full G1 requires Phase 4 realization.
+   - **Predictable from Γ alone**: D5 active → DP10 in Γ? D6 active → DP6 in Γ? D8/D9 active → DP13 in Γ?
+   - **Requires Phase 4**: D4a+D5+recip governance stack completeness (need actual atom realization to confirm all 5 ω_g_* are covered by distinct atoms).
+
+9. **Risks & Caveats** — uncertain predicates, edge cases, substrate limitations
+
+10. **Decision Path** — trace through each phase showing choices and reasoning
+
+After the report: **"To execute this structure, use `/team` or say 'Proceed'."**

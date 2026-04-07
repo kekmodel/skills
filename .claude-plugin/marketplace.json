@@ -48,18 +48,8 @@
     },
     {
       "name": "agent-team-theory",
-      "description": "First-principles agent team composition. Analyzes tasks, selects optimal architecture (A0-A8), and executes with dynamically composed Teammate teams.",
-      "source": "./plugins/agent-team-theory/",
-      "strict": false,
-      "skills": [
-        "./skills/team",
-        "./skills/team-analyze"
-      ]
-    },
-    {
-      "name": "agent-team-theory-v2",
       "description": "Generation-grammar agent team composition. Types tasks (Σ), derives obligations (Req), computes minimal admissible pattern covers (Γ), and executes with Structure Grammar atoms (Operator, Coordinator, Evaluator, Rewriter).",
-      "source": "./plugins/agent-team-theory-v2/",
+      "source": "./plugins/agent-team-theory/",
       "strict": false,
       "skills": [
         "./skills/team",

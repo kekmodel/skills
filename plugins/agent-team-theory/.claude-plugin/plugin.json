@@ -1,0 +1,8 @@
+{
+  "name": "agent-team-theory",
+  "version": "1.0.0",
+  "description": "Generation-grammar agent team composition. Types tasks (Sigma), derives obligations (Req), computes minimal admissible pattern covers (Gamma), and executes with Structure Grammar atoms (Operator, Coordinator, Evaluator, Rewriter).",
+  "author": {
+    "name": "kekmodel"
+  }
+}
