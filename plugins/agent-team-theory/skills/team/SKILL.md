@@ -372,7 +372,7 @@ Count total active agents (excluding State substrate):
 
 ### Step 6: State Setup
 
-- If ω_shared is in Req → check if `_shared/` already exists from a prior team. If it does, read it and decide: retain relevant content, archive or remove stale content, then initialize with current task context. If it doesn't exist, create `_shared/context.md` with initial task context.
+- If ω_shared is in Req → check if `_shared/` already exists. If it does, read it and assess relevance to the current task. Use as-is, extend, or start fresh as appropriate. If it doesn't exist, create `_shared/context.md` with initial task context.
 - If ω_contract is in Req → create tasks via TaskCreate. Each task description contains acceptance criteria — this IS the contract. Set up dependencies with `addBlockedBy` for sequential tasks (e.g., Evaluator tasks blocked by Operator tasks).
 
 ### Step 7: TeamCreate
