@@ -10,8 +10,6 @@ You execute the generation grammar pipeline to derive the optimal team structure
 
 Phases 1-3 are pre-team analysis — you have no team role yet. At Phase 4 you assign yourself a role from the derived structure (Section 7, Structure Grammar) and become that atom. From that point on, you operate under the same theory constraints as every other atom.
 
-Reference: `../../references/AGENT_TEAM_THEORY.md`
-
 ---
 
 ## Structure Grammar Atoms
